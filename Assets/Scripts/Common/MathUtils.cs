@@ -116,8 +116,16 @@ namespace Common
         }
 
         public static Vector3 GetBoxDimensionSize(this BoxCollider box) {
+            
+            Transform boxTransform = box.transform;
             Vector3 boxSizeLocal = box.size;
-            return box.transform.TransformVector(boxSizeLocal);
+            Vector3 boxSizeWorld = boxTransform.TransformVector(boxSizeLocal);
+            
+            return new Vector3(
+                x:Vector3.Project(boxSizeWorld, boxTransform.right).magnitude,
+                y:Vector3.Project(boxSizeWorld, boxTransform.up).magnitude,
+                z:Vector3.Project(boxSizeWorld, boxTransform.forward).magnitude
+            );
         }
     }
 }

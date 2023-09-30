@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Common;
+using MeshGeneration;
 using TrackGenerator;
 using TrackGenerator.Path;
 using Train;
@@ -15,54 +16,49 @@ public class DiskTrack : MonoBehaviour
     [SerializeField] private bool drawDisk = false;
     [SerializeField] private bool drawDiskTrack = false;
     [SerializeField] private bool drawLutTrack = false;
+    
+    [Space(10)]
     [SerializeField] private Color drawColor = Color.yellow;
     [SerializeField] private Color diskColor = Color.cyan;
     
-    [Space(10)]
-    [SerializeField] private float distanceLimit = 0.25f;
+    [Space(5)]
     [SerializeField] private bool angleCheck = false;
-
-    [Space(20)] [SerializeField] private bool randomTrack;
-
+    [SerializeField] private bool randomTrack;
+    [SerializeField] private float distanceLimit = 0.25f;
+    
     [Space(10)]
     [SerializeField] private List<Transform> trackPoints = new List<Transform>();
-
-    [Space(10)]
+    [Space(5)] 
+    [SerializeField] private CustomMesh meshGenerator;
+    [Space(5)] 
+    [SerializeField] private TrainObject trainObject;
+    [Space(5)]
     [SerializeField] private float speed;
-
- 
-    private TrainObject[] animationObjects;
     
     private List<Vector3> points = new List<Vector3>();
     private List<Vector3> randomPoints = new List<Vector3>();
     private Path path;
-    
+
     [ContextMenu("Make Random Track")]
     private void MakeTrack() {
         randomPoints.Clear();
         randomPoints.AddRange(GetRandomTrack());
         path = new Path(randomPoints.GetDiskTrack(), 4096, circularPath:true);
+        meshGenerator.GenerateMesh(path, trainObject);
     }
 
     private void Awake() {
         MakeTrack();
-        animationObjects = FindObjectsByType<TrainObject>(FindObjectsSortMode.None);
     }
 
     private void Update() {
         
         float t = Time.realtimeSinceStartup * (speed * 1e-3f);
         float animationT = t - Mathf.Floor(t);
-        int nObjects = animationObjects.Length;
-        float tOffset = (1.0f / nObjects);
-        for (var i = 0; i < nObjects; i++) {
-            
-            TrainObject animationObject = animationObjects[i];
-            float objectTime = animationT + i*tOffset;
-            float finalTime = objectTime - Mathf.Floor(objectTime);
-            
-            animationObject.UpdatePosition(path, finalTime);
-        }
+        float objectTime = animationT;
+        float finalTime = objectTime - Mathf.Floor(objectTime);
+        
+        trainObject.UpdatePosition(path, finalTime);
     }
 
     private void OnDrawGizmos() {

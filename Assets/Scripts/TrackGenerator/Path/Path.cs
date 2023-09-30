@@ -16,6 +16,9 @@ namespace TrackGenerator.Path{
         private int lutLength;
         private int lutEndIndex;
         public Vector3[] lut;
+
+        public float Length => pathLenght;
+
         public Path(List<Vector3> points, int lutLength, bool circularPath){
             
             if (circularPath){
@@ -29,7 +32,8 @@ namespace TrackGenerator.Path{
             CalculatePathLength();
             ConstructLut();
         }
-        
+
+
         private void CalculatePathLength() {
             
             Vector3 p1 = points[0];
@@ -89,6 +93,10 @@ namespace TrackGenerator.Path{
         }
 
         public Vector3 GetPoint(float t) {
+            
+            
+            // we should probably use log numbers for better performance
+            
             // TODO fix hermit interpolation https://www.cubic.org/docs/hermite.htm
             float lutTValue = t * (lutEndIndex);
             int x1 = Math.Clamp(Mathf.FloorToInt(lutTValue), 0, lutEndIndex);

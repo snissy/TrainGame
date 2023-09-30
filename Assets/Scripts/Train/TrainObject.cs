@@ -1,7 +1,12 @@
+using System.Numerics;
 using Common;
 using DefaultNamespace;
 using UnityEngine;
+using Matrix4x4 = UnityEngine.Matrix4x4;
 using Path = TrackGenerator.Path.Path;
+using Quaternion = UnityEngine.Quaternion;
+using Vector3 = UnityEngine.Vector3;
+using Vector4 = UnityEngine.Vector4;
 
 namespace Train {
     
@@ -9,18 +14,19 @@ namespace Train {
     public class TrainObject : MonoBehaviour {
         
         [SerializeField] private BoxCollider box;
-        private Vector3 TrainDimensions => box.GetBoxDimensionSize();
+        public Vector3 TrainDimensions => box.GetBoxDimensionSize();
         public void UpdatePosition(Path path, float t) {
+
+            Vector3 trainDim = TrainDimensions;
             
-            float deltaT = path.DistanceToTValue(TrainDimensions.z)*0.5f;
+            float deltaT = path.DistanceToTValue(trainDim.z)*0.5f;
 
             Vector3 backPos = path.GetPoint(t - deltaT);
             Vector3 forwardPos = path.GetPoint(t + deltaT);
-
             Vector3 midPoint = (backPos + forwardPos) * 0.5f;
-        
-            transform.position = midPoint;
-            transform.rotation = Quaternion.LookRotation((forwardPos - backPos).normalized, Vector3.up);
+            
+            transform.position = midPoint + Vector3.up * (0.5f*trainDim.y);
+            transform.rotation = Quaternion.LookRotation((forwardPos - backPos).normalized, Vector3.up);;
         }
         
         private void GetBackForwardPoints(out Vector3 back, out Vector3 forward) {
