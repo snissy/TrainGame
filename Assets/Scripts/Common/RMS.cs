@@ -35,7 +35,6 @@ public class RMS : MonoBehaviour
     public float speed = 1.0f;
     [Range(0.002f, 0.4f)]
     public float deltaDist = 0.25f;
-    private float frameInt = 0;
 
     private List<(Vector3 pos, float t)> bezierPositions;
 

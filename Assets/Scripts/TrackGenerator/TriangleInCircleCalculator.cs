@@ -1,5 +1,6 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
+using Common;
 
 namespace TrackGenerator {
     
@@ -11,7 +12,6 @@ namespace TrackGenerator {
         public Vector3[] TouchPoints;
     
     }
-    
     public static class TriangleInCircleCalculator {
     
         private static Vector3 TangentPoint(Vector3 pA, float ra, Vector3 pB, float rb) {
@@ -72,32 +72,27 @@ namespace TrackGenerator {
         
         public static List<Vector3> GetDiskTrack(this List<Vector3> points){
         
-                List<TriangleDisk> disks = points.GetDiskList();
-        
-                List<Vector3> finalTrack = new List<Vector3>();
+            List<TriangleDisk> disks = points.GetDiskList();
+    
+            List<Vector3> finalTrack = new List<Vector3>();
+            
+            foreach (TriangleDisk disk in disks) {
+    
+                Vector3 firstTouch = disk.TouchPoints[0];
+                Vector3 secondTouch = disk.TouchPoints[1];
+    
+                Vector3 diskToFirstTouch = firstTouch - disk.Center;
+                Vector3 diskToSecondTouch = secondTouch - disk.Center;
                 
-                foreach (TriangleDisk disk in disks) {
-        
-                    Vector3 firstTouch = disk.TouchPoints[0];
-                    Vector3 secondTouch = disk.TouchPoints[1];
-        
-                    Vector3 diskToFirstTouch = firstTouch - disk.Center;
-                    Vector3 diskToSecondTouch = secondTouch - disk.Center;
-                    
-                    finalTrack.Add(disk.TriangleVertices[0]);
-                    finalTrack.Add(firstTouch);
-        
-                        var tSteps = DefaultNamespace.MathUtils.Linspace(0, 1.0f, 30);
-        
-                        foreach (float step in tSteps) {
-                            finalTrack.Add(disk.Center + Vector3.Slerp(diskToFirstTouch, diskToSecondTouch, step));
-                        }
-                        
-                    finalTrack.Add(secondTouch);  
-                    finalTrack.Add(disk.TriangleVertices[2]);
+                var tSteps = MathUtils.LinSpace(0, 1.0f, 30);
+
+                foreach (float step in tSteps) {
+                    finalTrack.Add(disk.Center + Vector3.Slerp(diskToFirstTouch, diskToSecondTouch, step));
                 }
                 
-                return finalTrack;
+            }
+        
+            return finalTrack;
         }
     }
 }
