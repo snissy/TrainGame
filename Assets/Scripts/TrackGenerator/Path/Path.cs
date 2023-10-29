@@ -33,7 +33,6 @@ namespace TrackGenerator.Path{
             ConstructLut();
         }
 
-
         private void CalculatePathLength() {
             
             Vector3 p1 = points[0];
@@ -46,27 +45,34 @@ namespace TrackGenerator.Path{
         private void ConstructLut() {
 
             lut = new Vector3[lutLength];
-            Utils.LinSpace tSpace = new Utils.LinSpace(0, pathLenght, lutLength);
+            float[] tSpace = MathUtils.LinSpace(0, pathLenght, lutLength);
             Vector3 lineStart = points[0];
             Vector3 lineEnd = points[1];
             float segmentLenght = Vector3.Distance(lineStart, lineEnd);
             float coveredSegmentDistance = 0.0f;
-            
             int lineIndex = 0;
 
-            for (var i = 0; i < tSpace.array.Length; i++) {
-                
-                float coveredL = tSpace.array[i];
-                
+            void GoToNextSegment() {
+                coveredSegmentDistance += segmentLenght;
+                lineIndex++;
+                lineStart = points[lineIndex];
+                lineEnd = points[lineIndex + 1];
+                segmentLenght = Vector3.Distance(lineStart, lineEnd);
+            }
+
+            bool NextSegmentCheck(float coveredL) {
                 float coveredPlusCurrent = segmentLenght + coveredSegmentDistance;
-                float overNextSegment = (coveredL - coveredPlusCurrent);
+                float overNextSegment = coveredL - coveredPlusCurrent;
+                bool goToNextSegment = overNextSegment > DELTA;
+                return goToNextSegment;
+            }
+
+            for (var i = 0; i < tSpace.Length; i++) {
                 
-                if (overNextSegment > DELTA) {
-                    coveredSegmentDistance += segmentLenght;
-                    lineIndex++;
-                    lineStart = points[lineIndex];
-                    lineEnd = points[lineIndex + 1];
-                    segmentLenght = Vector3.Distance(lineStart, lineEnd);
+                float coveredL = tSpace[i];
+
+                while (NextSegmentCheck(coveredL)) {
+                    GoToNextSegment();
                 }
 
                 float onSegmentLenght = coveredL - coveredSegmentDistance;
@@ -96,7 +102,8 @@ namespace TrackGenerator.Path{
             
             
             // we should probably use log numbers for better performance
-            
+            // but how ? 
+
             // TODO fix hermit interpolation https://www.cubic.org/docs/hermite.htm
             float lutTValue = t * (lutEndIndex);
             int x1 = Math.Clamp(Mathf.FloorToInt(lutTValue), 0, lutEndIndex);

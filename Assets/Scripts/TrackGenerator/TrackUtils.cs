@@ -101,7 +101,6 @@ namespace DefaultNamespace.TrackGenerator
             return (startToPoint - pointProjectedOnLine).magnitude;
         }
         
-  
         public static float DistanceToAllPoint(Vector3 p, List<Vector3> allPoints)
         {
             float totDist = 0.0f;

@@ -1,21 +1,39 @@
-using System.Numerics;
+using System;
 using Common;
 using DefaultNamespace;
 using UnityEngine;
-using Matrix4x4 = UnityEngine.Matrix4x4;
 using Path = TrackGenerator.Path.Path;
 using Quaternion = UnityEngine.Quaternion;
 using Vector3 = UnityEngine.Vector3;
-using Vector4 = UnityEngine.Vector4;
 
 namespace Train {
     
     [RequireComponent(typeof(BoxCollider))]
     public class TrainObject : MonoBehaviour {
-        
+
+        private Path path;
+
+        [SerializeField] private Transform trainWheel;
         [SerializeField] private BoxCollider box;
+        [SerializeField] private float speed = 100f;
         public Vector3 TrainDimensions => box.GetBoxDimensionSize();
-        public void UpdatePosition(Path path, float t) {
+        public float WheelWidth => trainWheel.localScale.y;
+        
+        // TODO NILS MAKE WHEEL COMPONENT THIS IS SUPER BAD
+
+        private void Update() {
+            float t = Time.realtimeSinceStartup * (speed * 1e-3f);
+            float animationT = t - Mathf.Floor(t);
+            float objectTime = animationT;
+            float finalTime = objectTime - Mathf.Floor(objectTime);
+            UpdatePosition(finalTime);
+        }
+
+        public void SetPath(Path p) {
+            path = p;
+        }
+
+        private void UpdatePosition(float t) {
 
             Vector3 trainDim = TrainDimensions;
             

@@ -1,6 +1,8 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
 using Common;
+using DefaultNamespace;
+using MathNet.Numerics.LinearAlgebra;
 
 namespace TrackGenerator {
     
@@ -10,7 +12,6 @@ namespace TrackGenerator {
         public float Radius;
         public Vector3[] TriangleVertices;
         public Vector3[] TouchPoints;
-    
     }
     public static class TriangleInCircleCalculator {
     
@@ -84,12 +85,11 @@ namespace TrackGenerator {
                 Vector3 diskToFirstTouch = firstTouch - disk.Center;
                 Vector3 diskToSecondTouch = secondTouch - disk.Center;
                 
-                var tSteps = MathUtils.LinSpace(0, 1.0f, 30);
+                float[] tSteps = MathUtils.LinSpace(0, 1.0f, 100);
 
                 foreach (float step in tSteps) {
                     finalTrack.Add(disk.Center + Vector3.Slerp(diskToFirstTouch, diskToSecondTouch, step));
                 }
-                
             }
         
             return finalTrack;
