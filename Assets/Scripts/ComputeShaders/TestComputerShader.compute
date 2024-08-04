@@ -1,0 +1,110 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+#include "CameraModel.hlsl"
+
+// Input Values that I set
+uniform uint _N_Rays;
+// StructureBuffer is read only, probably thread safe
+// Is analogous to the GraphicsBuffer. Or just simple buffer.
+
+StructuredBuffer<CameraDefinition> _CAMERA_DEFINITION;
+StructuredBuffer<int> _Triangle_Indices;
+StructuredBuffer<Triangle> _Triangles;
+StructuredBuffer<BVH_Node> _BVH_Nodes;
+
+// Is  read-write version of the Structure buffer
+RWStructuredBuffer<float> _Result_Values;
+
+[numthreads(256,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    const uint index = id.x;
+    // TODO: insert actual code here!
+    if (index > _N_Rays){
+        return;
+    }
+
+    CameraDefinition camera_definition = _CAMERA_DEFINITION[0];
+
+    const uint pixelHeight = MapIndexToHeight(camera_definition, index);
+    const uint pixelWidth = MapIndexToWidth(camera_definition, index);
+    
+    const Ray testRay = GetPixelRay(camera_definition, pixelWidth, pixelHeight);
+    
+    float minLambda = FLT_MAX;
+    
+    int stack[32];
+    int stackPivot = -1;
+
+    BVH_Node startNode = _BVH_Nodes[0];
+
+    if(RayIntersectsBounds(testRay, startNode.Bounds) > 0){
+        stack[0] = 0;
+        stackPivot++;
+    }
+
+    while (stackPivot >= 0) {
+        
+        BVH_Node searchNode = _BVH_Nodes[stack[stackPivot]];
+        stackPivot--;
+
+        if(searchNode.LeftNodeIndex != searchNode.RightNodeIndex ){
+            // NOT a leaf
+
+            int firstIndex = searchNode.LeftNodeIndex;
+            int secondIndex = searchNode.RightNodeIndex;
+            
+            float firstLambda = RayIntersectsBounds(testRay, _BVH_Nodes[firstIndex].Bounds);
+            float secondLambda = RayIntersectsBounds(testRay, _BVH_Nodes[secondIndex].Bounds);
+            
+            firstLambda = firstLambda > 0 ? firstLambda : FLT_MAX;
+            secondLambda = secondLambda > 0 ? secondLambda : FLT_MAX;
+
+            if(secondLambda < firstLambda){
+                float tempLambda = firstLambda;
+                firstLambda = secondLambda;
+                secondLambda = tempLambda;
+
+                int tempIndex = firstIndex;
+                firstIndex = secondIndex;
+                secondIndex = tempIndex;
+            }
+
+            if(secondLambda < minLambda){
+                stackPivot++;
+                stack[stackPivot] = secondIndex;
+            }
+
+            if(firstLambda < minLambda){
+                stackPivot++;
+                stack[stackPivot] = firstIndex;
+            }
+        }
+        else {
+            // is a leaf lets check the triangles.
+
+            float resultLambda = FLT_MAX;
+            
+            for (uint i = searchNode.leafIndexStart; i <  searchNode.leafIndexEnd; ++i){
+
+                Triangle tri = _Triangles[_Triangle_Indices[i]];
+
+                float triangleLambda = TriangleRayIntersectionTest(testRay, tri);
+
+                if(triangleLambda > 0) {
+                    resultLambda = min(resultLambda, triangleLambda);
+                }
+            }
+
+            if (resultLambda < minLambda) {
+                minLambda = resultLambda;
+            }
+        }
+    }
+    
+    const float result = clamp(minLambda, 0, 3.0) / 3.0;
+    const float mappedResult = 1.0 - GammaFunction(result, 2.5f);
+    
+    _Result_Values[index] = mappedResult; 
+}

@@ -173,5 +173,17 @@ namespace Common {
                 z:Vector3.Project(boxSizeWorld, boxTransform.forward).magnitude
             );
         }
+
+        public static float ReMap(float value, float fromMin, float fromMax, float toMin, float toMax) {
+            // Check if the input value is within the source range
+            if (value < fromMin || value > fromMax) {
+                throw new ArgumentOutOfRangeException("value", "Input value is outside the source range");
+            }
+            // Calculate the ratio of the input value's position in the source range
+            float ratio = (value - fromMin) / (fromMax - fromMin);
+
+            // Map the ratio to the target range and return the result
+            return ratio * (toMax - toMin) + toMin;
+        }
     }
 }

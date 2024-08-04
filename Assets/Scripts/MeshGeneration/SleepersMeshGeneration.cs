@@ -109,46 +109,7 @@ namespace MeshGeneration {
 
             int circleIndex = sampleSpace.array.Length - 2;
             
-            for (int i = 1; i < sampleSpace.array.Length - 1; i++) {
-                
-                timeStepPlusOne = sampleSpace.array[i + 1];
-                rotation = Quaternion.LookRotation(path.GetDirection(timeStepPlusOne), Vector3.up);
-                if (i!= circleIndex && lastRotation == rotation) {
-                    continue;
-                }
-                lastRotation = rotation;
-                
-                rotatedSegment = rotation * lineSegment;
-                rotatedOffset = rotation * centerOffset;
-                
-                stepPlusOne = path.GetPoint(timeStepPlusOne) + rotatedOffset;
-                
-                v2 = stepPlusOne + rotatedSegment.End;
-                v3 = stepPlusOne + rotatedSegment.Start;
-                
-                normal = perpRotationXY0 * rotatedSegment.Dir;
-
-                lastVertexIndex += 2;
-
-                v0Index = lastVertexIndex - 3;
-                v1Index = lastVertexIndex - 2;
-                v2Index = lastVertexIndex - 1;
-                v3Index = lastVertexIndex;
-                
-                vertices.AddRange(new[]{
-                    v2, v3
-                });
-                
-                normals.AddRange( new[] {
-                    normal, normal
-                });
-
-                triangles.AddRange(new[] {
-                    v1Index, v2Index, v0Index,
-                    v1Index, v3Index, v2Index
-                });
-                
-            }
+            
             
             Mesh res = new Mesh() {
                 name = "Sub Mesh",
