@@ -1,12 +1,11 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
 using AmbientOcclusion.Geometry;
-using Matoya.Common;
+using Common;
 using Matoya.Common.Geometry;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.Profiling;
-using MathUtils = AmbientOcclusion.Geometry.MathUtils;
+using static Common.MathFunctions;
 
 namespace AmbientOcclusion.OcclusionTool
 {
@@ -162,10 +161,9 @@ namespace AmbientOcclusion.OcclusionTool
                         Vector2 point = flooredStart + new Vector2(i * pixelWidth + pixelDelta  , j * pixelWidth + pixelDelta);
                         
                         if (PointInTriangle(edge01, edge12, edge20, point)) {
-                            
-                            float u = MathUtils.TriangleArea(triangle.uv2, triangle.uv0, point) / triangle.uvArea;
-                            float v = MathUtils.TriangleArea(triangle.uv0, triangle.uv1, point) / triangle.uvArea;
-                            float w = MathUtils.TriangleArea(triangle.uv1, triangle.uv2, point) / triangle.uvArea;
+                            float u = MathFunctions.TriangleArea(triangle.uv2, triangle.uv0, point) / triangle.uvArea;
+                            float v = MathFunctions.TriangleArea(triangle.uv0, triangle.uv1, point) / triangle.uvArea;
+                            float w = MathFunctions.TriangleArea(triangle.uv1, triangle.uv2, point) / triangle.uvArea;
                             
                             Vector3 worldPosForUv = w*triangle.v0 + u*triangle.v1 + v*triangle.v2;
                             
@@ -176,12 +174,10 @@ namespace AmbientOcclusion.OcclusionTool
                                 Vector3 globalDir = triangle.faceRotation * sampleVector;
                                 Ray testRay = new Ray(worldPosForUv + globalDir*1e-3f, globalDir);
 
-                                float sampleValueToUse;
+                                Matrix4x4.Rotate(triangle.faceRotation);
+                                float sampleValueToUse = 1.0f;
                                 if (scene.IntersectRay(testRay, out float hitLambda, out MeshRenderer hitMesh, out int nTests) && hitLambda < 1.0f) {
                                     sampleValueToUse = hitLambda;
-                                }
-                                else {
-                                    sampleValueToUse = 1.0f;
                                 }
 
                                 ambientValue += sampleValueToUse;

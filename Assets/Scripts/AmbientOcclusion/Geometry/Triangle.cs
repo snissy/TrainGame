@@ -1,5 +1,6 @@
 ﻿
 using AmbientOcclusion.Geometry;
+using Common;
 using UnityEngine;
 
 namespace Matoya.Common.Geometry {
@@ -38,6 +39,8 @@ namespace Matoya.Common.Geometry {
             this.v0 = v0;
             this.v1 = v1;
             this.v2 = v2;
+            
+            // TODO NILS, these values should be Cached we recompute this every time we make intersection test, very stupid. 
 
             Vector3 edge0 = v1 - v0;
             Vector3 edge1 = v2 - v0;
@@ -58,7 +61,7 @@ namespace Matoya.Common.Geometry {
             this.uvMin = Vector2.Min(uv0, Vector2.Min(uv1, uv2));
             this.uvMax = Vector2.Max(uv0, Vector2.Max(uv1, uv2));
 
-            this.uvArea = MathUtils.TriangleArea(uv0, uv1, uv2);
+            this.uvArea = MathFunctions.TriangleArea(uv0, uv1, uv2);
 
             Vector2 st1 = uv1 - uv0;   // x --> S, y --> T
             Vector2 st2 = uv2 - uv0;
@@ -120,8 +123,7 @@ namespace Matoya.Common.Geometry {
             return false;
         }
         
-        public override string ToString()
-        {
+        public override string ToString() {
             return $"Triangle:\n" +
                    $"  Vertices: v0={v0}, v1={v1}, v2={v2}\n" +
                    $"  UVs: uv0={uv0}, uv1={uv1}, uv2={uv2}\n" +

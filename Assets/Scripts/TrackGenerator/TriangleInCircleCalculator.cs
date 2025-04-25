@@ -85,7 +85,7 @@ namespace TrackGenerator {
                 Vector3 diskToFirstTouch = firstTouch - disk.Center;
                 Vector3 diskToSecondTouch = secondTouch - disk.Center;
                 
-                float[] tSteps = MathUtils.LinSpace(0, 1.0f, 100);
+                float[] tSteps = MathFunctions.LinSpace(0, 1.0f, 100);
 
                 foreach (float step in tSteps) {
                     finalTrack.Add(disk.Center + Vector3.Slerp(diskToFirstTouch, diskToSecondTouch, step));

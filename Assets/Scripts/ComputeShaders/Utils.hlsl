@@ -31,7 +31,7 @@ struct Triangle {
     float3 faceBinormal;
 
     float4 faceRotation;
-        
+    
     Bounds bounds;
 };
 
@@ -112,5 +112,46 @@ float RayIntersectsBounds(Ray ray, Bounds bounds) {
 
     // Return -1 if no intersection, else return largest_tmin
     return intersect ? largest_tmin : -1.0;
+}
+
+float4x4 RotationMatrixFromQuaternion(float4 q)
+{
+    // Calculate intermediate values
+    float num1 = q.x * 2.0f;
+    float num2 = q.y * 2.0f;
+    float num3 = q.z * 2.0f;
+    float num4 = q.x * num1;
+    float num5 = q.y * num2;
+    float num6 = q.z * num3;
+    float num7 = q.x * num2;
+    float num8 = q.x * num3;
+    float num9 = q.y * num3;
+    float num10 = q.w * num1;
+    float num11 = q.w * num2;
+    float num12 = q.w * num3;
+
+    // Create a 4x4 matrix for rotation
+    float4x4 roationMatrix;
+    roationMatrix[0][0] = 1.0f - (num5 + num6);
+    roationMatrix[0][1] = num7 - num12;
+    roationMatrix[0][2] = num8 + num11;
+    roationMatrix[0][3] = 0.0f;
+    
+    roationMatrix[1][0] = num7 + num12;
+    roationMatrix[1][1] = 1.0f - (num4 + num6);
+    roationMatrix[1][2] = num9 - num10;
+    roationMatrix[1][3] = 0.0f;
+    
+    roationMatrix[2][0] = num8 - num11;
+    roationMatrix[2][1] = num9 + num10;
+    roationMatrix[2][2] = 1.0f - (num4 + num5);
+    roationMatrix[2][3] = 0.0f;
+    
+    roationMatrix[3][0] = 0.0f;
+    roationMatrix[3][1] = 0.0f;
+    roationMatrix[3][2] = 0.0f;
+    roationMatrix[3][3] = 1.0f;
+
+    return roationMatrix;
 }
 

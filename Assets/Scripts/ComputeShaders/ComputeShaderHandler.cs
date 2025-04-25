@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using AmbientOcclusion.OcclusionTool;
+﻿using AmbientOcclusion.OcclusionTool;
 using Matoya.Common;
 using Matoya.Common.Geometry;
 using Matoya.Minigolf.Scripts.OcclusionTool;

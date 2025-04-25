@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using Common;
 using DefaultNamespace;
 using MeshGeneration;
 using TrackGenerator;
@@ -6,7 +7,6 @@ using TrackGenerator.Path;
 using Train;
 using UnityEditor;
 using UnityEngine;
-using MathUtils = Common.MathUtils;
 
 public class DiskTrack : MonoBehaviour {
     
@@ -86,7 +86,7 @@ public class DiskTrack : MonoBehaviour {
     private void DrawLutTrack() {
 
         int nSteps = 200;
-        float[] linSpace = MathUtils.LinSpace(0, 1f, nSteps);
+        float[] linSpace = MathFunctions.LinSpace(0, 1f, nSteps);
         
         for (int i = 0; i < nSteps; i++) {
             float t1Value = linSpace[i];

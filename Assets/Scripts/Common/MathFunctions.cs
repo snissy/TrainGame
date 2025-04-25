@@ -57,9 +57,10 @@ namespace Common {
         }
     }
     
-    public static class MathUtils {
+    public static class MathFunctions {
         
         private const float DELTA = 1e-9f;
+        
         public static float[] LinSpace(float start, float stop, int num = 50, bool endpoint = true) { 
             // TODO write function doing the reversed, submitting float and getting index
             // would be super useful!
@@ -184,6 +185,21 @@ namespace Common {
 
             // Map the ratio to the target range and return the result
             return ratio * (toMax - toMin) + toMin;
+        }
+
+        public static float Frac(float x) {
+            return x - Mathf.Floor(x);
+        }
+        
+        public static float CrossProduct(Vector2 a, Vector2 b) {
+            return a.x * b.y - a.y * b.x;
+        }
+
+        public static float TriangleArea(Vector2 a, Vector2 b, Vector2 c) {
+            // Calculate vectors AB, AC, and BC
+            Vector2 ab = b - a;
+            Vector2 ac = c - a;
+            return Mathf.Abs(CrossProduct(ab, ac)) * 0.5f;
         }
     }
 }

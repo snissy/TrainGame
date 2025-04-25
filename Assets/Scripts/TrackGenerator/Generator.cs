@@ -151,7 +151,7 @@ namespace TrackGenerator {
                     Vector3 lineStart = points[j];
                     Vector3 lineEnd = points[(j + 1) % nPoint];
 
-                    if (MathUtils.Compute2DIntersection(new LineSegment(checkStart , checkEnd), new LineSegment(lineStart, lineEnd)).exist) {
+                    if (MathFunctions.Compute2DIntersection(new LineSegment(checkStart , checkEnd), new LineSegment(lineStart, lineEnd)).exist) {
                         return true;
                     }
                 }

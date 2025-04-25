@@ -29,7 +29,6 @@ void CSMain (uint3 id : SV_DispatchThreadID)
 
     const uint pixelHeight = MapIndexToHeight(camera_definition, index);
     const uint pixelWidth = MapIndexToWidth(camera_definition, index);
-    
     const Ray testRay = GetPixelRay(camera_definition, pixelWidth, pixelHeight);
     
     float minLambda = FLT_MAX;

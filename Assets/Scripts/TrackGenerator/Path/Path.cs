@@ -45,7 +45,7 @@ namespace TrackGenerator.Path{
         private void ConstructLut() {
 
             lut = new Vector3[lutLength];
-            float[] tSpace = MathUtils.LinSpace(0, pathLenght, lutLength);
+            float[] tSpace = MathFunctions.LinSpace(0, pathLenght, lutLength);
             Vector3 lineStart = points[0];
             Vector3 lineEnd = points[1];
             float segmentLenght = Vector3.Distance(lineStart, lineEnd);

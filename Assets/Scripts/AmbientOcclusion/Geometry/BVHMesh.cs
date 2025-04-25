@@ -96,7 +96,7 @@ namespace Matoya.Common.Geometry {
                 globalTriangles,
                 triangleIndices,
                 range,
-                128,
+                8,
                 out ArrayRange leftRange,
                 out ArrayRange rightRange);
         

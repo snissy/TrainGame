@@ -58,8 +58,8 @@ public class SamplePattern : MonoBehaviour {
 
         Gizmos.color = drawColorSamplingPatternSphere;
         foreach (Vector2 drawPoint in drawPoints) {
-            float phiStep = MathUtils.ReMap(drawPoint.x, 0, 1, 0, Mathf.PI * 2.0f); 
-            float tauStep = MathUtils.ReMap(drawPoint.y, 0, 1, 0, Mathf.PI * 0.5f); 
+            float phiStep = MathFunctions.ReMap(drawPoint.x, 0, 1, 0, Mathf.PI * 2.0f); 
+            float tauStep = MathFunctions.ReMap(drawPoint.y, 0, 1, 0, Mathf.PI * 0.5f); 
             Gizmos.DrawWireSphere(SphericalToCartesian(phiStep, tauStep, 1.0f), pointRadius);
             Gizmos.DrawRay(Vector3.zero,SphericalToCartesian(phiStep, tauStep, 1.0f) * 2.0f);
         }

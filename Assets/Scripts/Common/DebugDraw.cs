@@ -7,15 +7,15 @@ namespace DefaultNamespace
 
         private const float TAU = 2.0f * 3.1415926f;
 
-        public static void DrawPoint(Vector3 p, float markerSize, Color c) {
+        public static void DrawPoint(Vector3 p, float markerSize, Color c, float duration) {
 
             Vector3 upVector = Vector3.up * markerSize;
             Vector3 rightVector = Vector3.right * markerSize;
             Vector3 forwardVector = Vector3.forward * markerSize;
             
-            Debug.DrawLine(p + upVector, p - upVector, c, 25);
-            Debug.DrawLine(p + rightVector, p - rightVector, c, 25);
-            Debug.DrawLine(p + forwardVector, p - forwardVector, c, 25);
+            Debug.DrawLine(p + upVector, p - upVector, c, duration);
+            Debug.DrawLine(p + rightVector, p - rightVector, c, duration);
+            Debug.DrawLine(p + forwardVector, p - forwardVector, c, duration);
         }
 
         public static void DrawArrow(Vector3 start, Vector3 end, Color c) {
@@ -36,7 +36,7 @@ namespace DefaultNamespace
             
             Gizmos.color = c;
             
-            float[] tSpace = MathUtils.LinSpace(0, TAU);
+            float[] tSpace = MathFunctions.LinSpace(0, TAU);
 
             for (var i = 0; i < tSpace.Length; i++) {
                 float tStep = tSpace[i];
@@ -56,7 +56,7 @@ namespace DefaultNamespace
             int nSteps = Mathf.FloorToInt(magnitude / fixSize);
             
             Gizmos.color = c;
-            float[] tSpace = MathUtils.LinSpace(0, 1, nSteps);
+            float[] tSpace = MathFunctions.LinSpace(0, 1, nSteps);
             
             for (var i = 0; i < tSpace.Length - 1; i+=2) {
                 float tStep = tSpace[i];

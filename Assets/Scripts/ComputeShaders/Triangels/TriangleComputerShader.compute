@@ -1,0 +1,186 @@
+#include "Assets/Scripts/ComputeShaders/CameraModel.hlsl"
+
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+#pragma kernel CS_Sampling_Mesh
+#pragma kernel CS_Interpolate_Texture
+
+// Input Values that I set
+uniform uint _N_RAYS_PER_TRIANGLE;
+uniform uint _N_TRIANGLES;
+uniform uint _N_SAMPLE_POINTS;
+uniform uint _OCCLUSION_SAMPLE_SIZE;
+
+StructuredBuffer<Triangle> _Triangles;
+StructuredBuffer<float2> _Golden_Points;
+StructuredBuffer<float3> _Occlusion_Sample_Pattern;
+
+// BVH DATA
+StructuredBuffer<int> _BVH_Triangle_Indices;
+StructuredBuffer<BVH_Node> _BVH_Nodes;
+
+// Is  read-write version of the Structure buffer
+RWStructuredBuffer<float3> _Sample_Points;
+RWStructuredBuffer<float2> _UV_Sample_Coordinates;
+RWStructuredBuffer<int> _Triangle_Sample_Index;
+RWStructuredBuffer<float> _Ambient_Sample_Values;
+
+RWTexture2D<float4> _Final_Result;
+
+float Sample_BVH(Ray testRay){
+    
+    float minLambda = FLT_MAX;
+    
+    int stack[32];
+    int stackPivot = -1;
+
+    const BVH_Node startNode = _BVH_Nodes[0];
+
+    if(RayIntersectsBounds(testRay, startNode.Bounds) > 0){
+        stack[0] = 0;
+        stackPivot++;
+    }
+
+    while (stackPivot >= 0) {
+        
+        const BVH_Node searchNode = _BVH_Nodes[stack[stackPivot]];
+        stackPivot--;
+
+        if(searchNode.LeftNodeIndex != searchNode.RightNodeIndex ){
+            // NOT a leaf
+
+            int firstIndex = searchNode.LeftNodeIndex;
+            int secondIndex = searchNode.RightNodeIndex;
+            
+            float firstLambda = RayIntersectsBounds(testRay, _BVH_Nodes[firstIndex].Bounds);
+            float secondLambda = RayIntersectsBounds(testRay, _BVH_Nodes[secondIndex].Bounds);
+            
+            firstLambda = firstLambda > 0 ? firstLambda : FLT_MAX;
+            secondLambda = secondLambda > 0 ? secondLambda : FLT_MAX;
+
+            if(secondLambda < firstLambda){
+                float tempLambda = firstLambda;
+                firstLambda = secondLambda;
+                secondLambda = tempLambda;
+
+                int tempIndex = firstIndex;
+                firstIndex = secondIndex;
+                secondIndex = tempIndex;
+            }
+
+            if(secondLambda < minLambda){
+                stackPivot++;
+                stack[stackPivot] = secondIndex;
+            }
+
+            if(firstLambda < minLambda){
+                stackPivot++;
+                stack[stackPivot] = firstIndex;
+            }
+        }
+        else {
+            // is a leaf lets check the triangles.
+
+            float resultLambda = FLT_MAX;
+            
+            for (uint i = searchNode.leafIndexStart; i <  searchNode.leafIndexEnd; ++i){
+
+                Triangle tri = _Triangles[_BVH_Triangle_Indices[i]];
+
+                float triangleLambda = TriangleRayIntersectionTest(testRay, tri);
+
+                if(triangleLambda > 0) {
+                    resultLambda = min(resultLambda, triangleLambda);
+                }
+            }
+
+            if (resultLambda < minLambda) {
+                minLambda = resultLambda;
+            }
+        }
+    }
+    
+    return minLambda;
+}
+
+[numthreads(1024,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    const uint triangleIndex = id.x;
+    
+    if (triangleIndex > _N_TRIANGLES){
+        return;
+    }
+    
+    Triangle sampleTriangle = _Triangles[triangleIndex];
+    for (uint i = 0; i < _N_RAYS_PER_TRIANGLE; i++){
+
+        const int sampleIndex = triangleIndex * _N_RAYS_PER_TRIANGLE + i;
+        
+        float2 uvPoint = _Golden_Points[i];
+        float sqrtR1 = sqrt(uvPoint.x);
+        float r2 = uvPoint.y;
+
+        float v0Weight = 1 - sqrtR1;
+        float v1Weight = sqrtR1 * (1 - r2);
+        float v2Wegiht = r2 * sqrtR1;
+
+        float3 worldSamplePoint =  v0Weight * sampleTriangle.v0 + v1Weight * sampleTriangle.v1 + v2Wegiht * sampleTriangle.v2;
+        float2 uvSamplePoint = v0Weight * sampleTriangle.uv0 + v1Weight * sampleTriangle.uv1 + v2Wegiht * sampleTriangle.uv2;
+
+        _Sample_Points[sampleIndex] = worldSamplePoint;
+        _UV_Sample_Coordinates[sampleIndex] = uvSamplePoint;
+        _Triangle_Sample_Index[sampleIndex] = triangleIndex;
+    }
+}
+
+[numthreads(1024, 1, 1)]
+void CS_Sampling_Mesh(uint3 id : SV_DispatchThreadID) {
+
+    const uint sampleIndex = id.x;
+    
+    if (sampleIndex > _N_SAMPLE_POINTS){
+        return;
+    }
+    
+    float3 globalOrigin = _Sample_Points[sampleIndex];
+    Triangle sampleTriangle = _Triangles[_Triangle_Sample_Index[sampleIndex]];
+
+    Ray testRay;
+    testRay.Origin = globalOrigin;
+    float4x4 rotationMatrix = RotationMatrixFromQuaternion(sampleTriangle.faceRotation);
+    
+    float ambientValue = 0.0f;
+ 
+    for (uint i = 0; i < _OCCLUSION_SAMPLE_SIZE; ++i) {
+        float3 sampleVector = _Occlusion_Sample_Pattern[i];
+        float3 globalDir = RotateVector(sampleVector, rotationMatrix);
+        testRay.Direction = globalDir;
+        float sampleValueToUse = min(1.0f, Sample_BVH(testRay));
+        ambientValue += sampleValueToUse;
+    }
+    _Ambient_Sample_Values[sampleIndex] = ambientValue / _OCCLUSION_SAMPLE_SIZE;
+}
+
+[numthreads(1024, 1, 1)]
+void CS_Interpolate_Texture(uint3 id : SV_DispatchThreadID) {
+
+    const uint sampleIndex = id.x;
+    
+    if (sampleIndex > _N_SAMPLE_POINTS){
+        return;
+    }
+    
+    float2 uvPoint = _UV_Sample_Coordinates[sampleIndex];
+    float ambientValue = _Ambient_Sample_Values[sampleIndex];
+
+    uint width;
+    uint height;
+    _Final_Result.GetDimensions(width, height);
+
+    width = round(uvPoint.x * width);
+    height = round(uvPoint.y * height);
+    
+    _Final_Result[int2(width, height)] = float4(ambientValue, ambientValue, ambientValue, 1);
+}
+
