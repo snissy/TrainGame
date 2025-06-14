@@ -376,8 +376,7 @@ namespace AmbientOcclusion.Geometry.Scripts
         {
             root = root.OptimizeNode(
                 cachedTriangleArray,
-                cachedTriangleIndices,
-                new ArrayRange(0, cachedTriangleArray.Length)
+                cachedTriangleIndices
             );
         }
 

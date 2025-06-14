@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography;
 
 namespace AmbientOcclusion.Geometry.Scripts
@@ -177,74 +178,85 @@ namespace AmbientOcclusion.Geometry.Scripts
 
         public static IEnumerable<Bipartition> GetAllAlteredBipartitionsOneMove(Bipartition partition)
         {
-            // Move from groupA to groupB
-            if (partition.groupA.Count > 1)
+            foreach (var newPartition in GenerateMoves(partition.groupA, partition.groupB, true))
             {
-                for (int i = 0; i < partition.groupA.Count; i++)
-                {
-                    int itemToMove = partition.groupA[i];
-
-                    List<int> newSource = new List<int>(partition.groupA);
-                    newSource.RemoveAt(i);
-
-                    List<int> newTarget = new List<int>(partition.groupB) { itemToMove };
-
-                    yield return new Bipartition(newSource, newTarget);
-                }
+                yield return newPartition;
             }
 
-            // Move from groupB to groupA
-            if (partition.groupB.Count > 1)
+            foreach (var newPartition in GenerateMoves(partition.groupB, partition.groupA, false))
             {
-                for (int i = 0; i < partition.groupB.Count; i++)
+                yield return newPartition;
+            }
+        }
+        
+        private static IEnumerable<Bipartition> GenerateMoves(List<int> source, List<int> target, bool isSourceGroupA)
+        {
+            if (source.Count <= 1)
+            {
+                yield break;
+            }
+            
+            List<int> newTarget = new List<int>(target.Count + 1);
+            newTarget.AddRange(target);
+
+            for (int i = 0; i < source.Count; i++)
+            {
+                int itemToMove = source[i];
+                
+                var newSource = new List<int>(source.Count - 1);
+                for (int j = 0; j < i; j++)
                 {
-                    int itemToMove = partition.groupB[i];
-
-                    List<int> newSource = new List<int>(partition.groupB);
-                    newSource.RemoveAt(i);
-
-                    List<int> newTarget = new List<int>(partition.groupA) { itemToMove };
-
-                    yield return new Bipartition(newTarget, newSource);
+                    newSource.Add(source[j]);
                 }
+
+                for (int j = i + 1; j < source.Count; j++)
+                {
+                    newSource.Add(source[j]);
+                }
+                
+                newTarget.Add(itemToMove);
+                
+                if (isSourceGroupA)
+                {
+                    yield return new Bipartition(newSource, new List<int>(newTarget));
+                }
+                else
+                {
+                    yield return new Bipartition(new List<int>(newTarget), newSource);
+                }
+                
+                newTarget.RemoveAt(target.Count);
             }
         }
 
         public static IEnumerable<Bipartition> GetAllAlteredBipartitionsSwap(Bipartition partition,
             HashSet<int> moveableNodes)
         {
-            List<int> groupA = new List<int>(partition.groupA);
-            List<int> groupB = new List<int>(partition.groupB);
+            var moveableA = partition.groupA
+                .Select((item, index) => new { item, index })
+                .Where(x => moveableNodes.Contains(x.item))
+                .ToList();
 
-            int countA = groupA.Count;
-            int countB = groupB.Count;
+            var moveableB = partition.groupB
+                .Select((item, index) => new { item, index })
+                .Where(x => moveableNodes.Contains(x.item))
+                .ToList();
 
-            // For each element in A, swap it with each element in B
-            for (int i = 0; i < countA; i++)
+            List<int> newA = new List<int>(partition.groupA);
+            List<int> newB = new List<int>(partition.groupB);
+
+            foreach (var a in moveableA)
             {
-                if (!moveableNodes.Contains(i))
+                foreach (var b in moveableB)
                 {
-                    continue;
-                }
+                    // Perform the swap on our working lists.
+                    newA[a.index] = b.item;
+                    newB[b.index] = a.item;
 
-                int aItem = groupA[i];
-                for (int j = 0; j < countB; j++)
-                {
-                    if (!moveableNodes.Contains(j))
-                    {
-                        continue;
-                    }
+                    yield return new Bipartition(new List<int>(newA), new List<int>(newB));
 
-                    int bItem = groupB[j];
-
-                    // Clone both lists, then swap at indices i and j
-                    List<int> newA = new List<int>(groupA);
-                    List<int> newB = new List<int>(groupB);
-
-                    newA[i] = bItem;
-                    newB[j] = aItem;
-
-                    yield return new Bipartition(newA, newB);
+                    newA[a.index] = a.item;
+                    newB[b.index] = b.item;
                 }
             }
         }
