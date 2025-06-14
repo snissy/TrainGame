@@ -1,0 +1,16 @@
+{
+    "name": "Geometry",
+    "rootNamespace": "",
+    "references": [
+        "GUID:3f29402d8b48fd44cb1c94a95d060570"
+    ],
+    "includePlatforms": [],
+    "excludePlatforms": [],
+    "allowUnsafeCode": false,
+    "overrideReferences": false,
+    "precompiledReferences": [],
+    "autoReferenced": true,
+    "defineConstraints": [],
+    "versionDefines": [],
+    "noEngineReferences": false
+}
