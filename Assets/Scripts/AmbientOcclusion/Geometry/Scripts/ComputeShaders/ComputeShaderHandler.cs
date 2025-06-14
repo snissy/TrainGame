@@ -1,10 +1,7 @@
-﻿using AmbientOcclusion.OcclusionTool;
-using Matoya.Common;
-using Matoya.Common.Geometry;
-using Matoya.Minigolf.Scripts.OcclusionTool;
+﻿using AmbientOcclusion.Geometry.Scripts.OcclusionTool;
 using UnityEngine;
 
-namespace ComputeShaders
+namespace AmbientOcclusion.Geometry.Scripts.ComputeShaders
 {
     public class ComputeShaderHandler : MonoBehaviour
     {

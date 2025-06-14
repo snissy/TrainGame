@@ -1,6 +1,6 @@
 ﻿using UnityEngine;
 
-namespace AmbientOcclusion.Geometry
+namespace AmbientOcclusion.Geometry.Scripts
 {
     public struct Vertex {
         public readonly Vector3 worldPosition;

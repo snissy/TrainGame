@@ -1,10 +1,9 @@
 ﻿using System;
 using Common;
 using DefaultNamespace;
-using Matoya.Common.Geometry;
 using UnityEngine;
 
-namespace ComputeShaders {
+namespace AmbientOcclusion.Geometry.Scripts.ComputeShaders.Triangels {
     public class ComputeShaderTriangleTest : MonoBehaviour {
         
         const float GOLDEN_RATIO = 1.618033988f;

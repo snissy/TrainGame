@@ -2,7 +2,7 @@
 using UnityEngine;
 using Debug = UnityEngine.Debug;
 
-namespace AmbientOcclusion.OcclusionTool {
+namespace AmbientOcclusion.Geometry.Scripts.OcclusionTool {
     
     public static class TextureExtensions {
         public static void SetPoint(this Texture2D texture, Vector2Int position, Color c) {
