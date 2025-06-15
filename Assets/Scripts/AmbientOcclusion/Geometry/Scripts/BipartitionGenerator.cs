@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Security.Cryptography;
 
 namespace AmbientOcclusion.Geometry.Scripts
@@ -10,13 +9,25 @@ namespace AmbientOcclusion.Geometry.Scripts
         public static Bipartition emptyPartition = new();
 
         public int nItems => groupA.Count + groupB.Count;
-        public List<int> groupA;
-        public List<int> groupB;
+        public HashSet<int> groupA;
+        public HashSet<int> groupB;
 
         public Bipartition(List<int> groupA, List<int> groupB)
         {
-            this.groupA = groupA;
-            this.groupB = groupB;
+            this.groupA = new HashSet<int>(groupA);
+            this.groupB = new HashSet<int>(groupB);
+        }
+
+        public Bipartition(HashSet<int> groupA, HashSet<int> groupB)
+        {
+            this.groupA = new HashSet<int>(groupA);
+            this.groupB = new HashSet<int>(groupB);
+        }
+
+        public Bipartition(IEnumerable<int> groupA, IEnumerable<int> groupB)
+        {
+            this.groupA = new HashSet<int>(groupA);
+            this.groupB = new HashSet<int>(groupB);
         }
     }
 
@@ -174,91 +185,6 @@ namespace AmbientOcclusion.Geometry.Scripts
 
             return new Bipartition(newGroupA, newGroupB);
         }
-
-
-        public static IEnumerable<Bipartition> GetAllAlteredBipartitionsOneMove(Bipartition partition)
-        {
-            foreach (var newPartition in GenerateMoves(partition.groupA, partition.groupB, true))
-            {
-                yield return newPartition;
-            }
-
-            foreach (var newPartition in GenerateMoves(partition.groupB, partition.groupA, false))
-            {
-                yield return newPartition;
-            }
-        }
         
-        private static IEnumerable<Bipartition> GenerateMoves(List<int> source, List<int> target, bool isSourceGroupA)
-        {
-            if (source.Count <= 1)
-            {
-                yield break;
-            }
-            
-            List<int> newTarget = new List<int>(target.Count + 1);
-            newTarget.AddRange(target);
-
-            for (int i = 0; i < source.Count; i++)
-            {
-                int itemToMove = source[i];
-                
-                var newSource = new List<int>(source.Count - 1);
-                for (int j = 0; j < i; j++)
-                {
-                    newSource.Add(source[j]);
-                }
-
-                for (int j = i + 1; j < source.Count; j++)
-                {
-                    newSource.Add(source[j]);
-                }
-                
-                newTarget.Add(itemToMove);
-                
-                if (isSourceGroupA)
-                {
-                    yield return new Bipartition(newSource, new List<int>(newTarget));
-                }
-                else
-                {
-                    yield return new Bipartition(new List<int>(newTarget), newSource);
-                }
-                
-                newTarget.RemoveAt(target.Count);
-            }
-        }
-
-        public static IEnumerable<Bipartition> GetAllAlteredBipartitionsSwap(Bipartition partition,
-            HashSet<int> moveableNodes)
-        {
-            var moveableA = partition.groupA
-                .Select((item, index) => new { item, index })
-                .Where(x => moveableNodes.Contains(x.item))
-                .ToList();
-
-            var moveableB = partition.groupB
-                .Select((item, index) => new { item, index })
-                .Where(x => moveableNodes.Contains(x.item))
-                .ToList();
-
-            List<int> newA = new List<int>(partition.groupA);
-            List<int> newB = new List<int>(partition.groupB);
-
-            foreach (var a in moveableA)
-            {
-                foreach (var b in moveableB)
-                {
-                    // Perform the swap on our working lists.
-                    newA[a.index] = b.item;
-                    newB[b.index] = a.item;
-
-                    yield return new Bipartition(new List<int>(newA), new List<int>(newB));
-
-                    newA[a.index] = a.item;
-                    newB[b.index] = b.item;
-                }
-            }
-        }
     }
 }

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
+using UnityEngine.Assertions.Must;
 using Random = System.Random;
 
 namespace AmbientOcclusion.Geometry.Scripts
@@ -155,20 +156,25 @@ namespace AmbientOcclusion.Geometry.Scripts
             return (nodesList, new Bipartition(groupA, groupB));
         }
 
-        private static (Bounds bounds, int primitiveCount) GetPartitionInfo(List<BVHNodeMesh> nodes, List<int> group)
+        private static (Bounds bounds, int primitiveCount) GetPartitionInfo(List<BVHNodeMesh> nodes,
+            IEnumerable<int> group)
         {
-            if (group.Count == 0)
+            using IEnumerator<int> e = group.GetEnumerator();
+
+            if (!e.MoveNext())
             {
-                throw new Exception("This groups should not be empty!!!");
+                throw new InvalidOperationException("Group must contain at least one element.");
             }
 
-            Bounds bounds = nodes[group[0]].bounds;
-            int primitiveCount = nodes[group[0]].nPrimitives;
+            int firstIndex = e.Current;
+            Bounds bounds = nodes[firstIndex].bounds;
+            int primitiveCount = nodes[firstIndex].nPrimitives;
 
-            for (var i = 1; i < group.Count; i++)
+            while (e.MoveNext())
             {
-                bounds.Encapsulate(nodes[group[i]].bounds);
-                primitiveCount += nodes[group[i]].nPrimitives;
+                int idx = e.Current;
+                bounds.Encapsulate(nodes[idx].bounds);
+                primitiveCount += nodes[idx].nPrimitives;
             }
 
             return (bounds, primitiveCount);
@@ -187,7 +193,7 @@ namespace AmbientOcclusion.Geometry.Scripts
 
         private static HashSet<int> GetMoveableNode(List<BVHNodeMesh> searchingGroup, BVHNodeMesh startNode)
         {
-            const int nItems = 64;
+            const int nItems = 8;
 
             List<(int index, float distance)> res = new List<(int index, float distance)>();
 
@@ -205,35 +211,63 @@ namespace AmbientOcclusion.Geometry.Scripts
 
             return res.OrderByDescending(x => x.distance).Select(x => x.index).Take(nItems).ToHashSet();
         }
+        
 
-        private static void OptimizePartition(
-            Func<IEnumerable<Bipartition>> candidateGenerator,
-            List<BVHNodeMesh> searchingGroup,
-            ref Bipartition bestPartition,
-            ref float bestCost)
+        // a small DTO to hold the results
+        class PartitionStats
         {
-            while (true)
+            public Bounds? StaticBounds { get; }
+            public int StaticCount { get; }
+            public HashSet<int> StaticIndices { get; }
+            public HashSet<int> MoveableNodes { get; }
+
+            public PartitionStats(Bounds? staticBounds, int staticCount, HashSet<int> staticIndices,
+                HashSet<int> moveableNodes)
             {
-                bool improvementWasFound = false;
-                foreach (var candidate in candidateGenerator())
-                {
-                    float candidateCost = GetSAHScoreFromGroup(searchingGroup, candidate);
-                    if (candidateCost + Delta > bestCost)
-                    {
-                        continue;
-                    }
-
-                    bestPartition = candidate;
-                    bestCost = candidateCost;
-                    improvementWasFound = true;
-                }
-
-                if (!improvementWasFound)
-                {
-                    break;
-                }
+                StaticBounds = staticBounds;
+                StaticCount = staticCount;
+                StaticIndices = staticIndices;
+                MoveableNodes = moveableNodes;
             }
         }
+
+        private static PartitionStats ComputePartitionStats(IEnumerable<int> group, ISet<int> moveableNodes,
+            List<BVHNodeMesh> searchingGroup)
+        {
+            List<int> staticNodes = new();
+            HashSet<int> moveNodes = new();
+
+            foreach (int nodeIndex in group)
+            {
+                if (moveableNodes.Contains(nodeIndex))
+                {
+                    moveNodes.Add(nodeIndex);
+                }
+                else
+                {
+                    staticNodes.Add(nodeIndex);
+                }
+            }
+
+            if (staticNodes.Count == 0)
+            {
+                return new PartitionStats(null, 0, new HashSet<int>(), moveNodes);
+            }
+
+            Bounds combinedBounds = searchingGroup[staticNodes[0]].bounds;
+            int primitiveCount = searchingGroup[staticNodes[0]].nPrimitives;
+            for (int i = 1; i < staticNodes.Count; i++)
+            {
+                BVHNodeMesh mesh = searchingGroup[staticNodes[i]];
+                combinedBounds.Encapsulate(mesh.bounds);
+                primitiveCount += mesh.nPrimitives;
+            }
+
+            HashSet<int> staticIndices = new HashSet<int>(staticNodes);
+
+            return new PartitionStats(combinedBounds, primitiveCount, staticIndices, moveNodes);
+        }
+
 
         private static bool SearchForBestPartition(BVHNodeMesh searchNode, out List<BVHNodeMesh> leftGroup,
             out List<BVHNodeMesh> rightGroup)
@@ -241,25 +275,120 @@ namespace AmbientOcclusion.Geometry.Scripts
             float baseBest = searchNode.left.nPrimitives * searchNode.left.bounds.SurfaceArea() +
                              searchNode.right.nPrimitives * searchNode.right.bounds.SurfaceArea();
 
-            (List<BVHNodeMesh> searchingGroup, Bipartition bestPartitionFound) = GetNNodes(searchNode, 512);
+            (List<BVHNodeMesh> searchingGroup, Bipartition bestPartitionFound) = GetNNodes(searchNode, 16);
             float bestCostFound = GetSAHScoreFromGroup(searchingGroup, bestPartitionFound);
 
             HashSet<int> moveableNodes = GetMoveableNode(searchingGroup, searchNode);
 
-            OptimizePartition(
-                () => RandomBipartitionGenerator.GetAllAlteredBipartitionsSwap(bestPartitionFound, moveableNodes),
-                searchingGroup,
-                ref bestPartitionFound,
-                ref bestCostFound);
+            var statsA = ComputePartitionStats(bestPartitionFound.groupA, moveableNodes, searchingGroup);
+            Bounds? staticABounds = statsA.StaticBounds;
+            int staticACount = statsA.StaticCount;
+            HashSet<int> staticInA = statsA.StaticIndices;
+            HashSet<int> moveableInA = statsA.MoveableNodes;
 
-            OptimizePartition(
-                () => RandomBipartitionGenerator.GetAllAlteredBipartitionsOneMove(bestPartitionFound),
-                searchingGroup,
-                ref bestPartitionFound,
-                ref bestCostFound);
+            var statsB = ComputePartitionStats(bestPartitionFound.groupB, moveableNodes, searchingGroup);
+            Bounds? staticBBounds = statsB.StaticBounds;
+            int staticBCount = statsB.StaticCount;
+            HashSet<int> staticInB = statsB.StaticIndices;
+            HashSet<int> moveableInB = statsB.MoveableNodes;
+
+            List<int> moveableList = moveableNodes.ToList();
+            int total = moveableList.Count;
+
+            void EvaluateAndCompare(IEnumerable<int> candidateA, IEnumerable<int> candidateB)
+            {
+                (Bounds bounds, int primitiveCount)? groupAInfo = null;
+                (Bounds bounds, int primitiveCount)? groupBInfo = null;
+                
+                if (candidateA.Any())
+                {
+                    groupAInfo = GetPartitionInfo(searchingGroup, candidateA);
+                }
+
+                if (candidateB.Any())
+                {
+                    groupBInfo = GetPartitionInfo(searchingGroup, candidateB);
+                }
+                
+                if (staticABounds.HasValue)
+                {
+                    Bounds tempBounds = groupAInfo?.bounds ?? staticABounds.Value;
+                    tempBounds.Encapsulate(staticABounds.Value);
+                    
+                    int tempCount = groupAInfo?.primitiveCount + staticACount ?? staticACount;
+                    groupAInfo = (tempBounds, tempCount);
+                }
+
+                if (staticBBounds.HasValue)
+                {
+                    Bounds tempBounds = groupBInfo?.bounds ?? staticBBounds.Value;
+                    tempBounds.Encapsulate(staticBBounds.Value);
+                    
+                    int tempCount = groupBInfo?.primitiveCount + staticBCount ?? staticBCount;
+                    groupBInfo = (tempBounds, tempCount);
+                }
+
+                if (groupAInfo == null || groupBInfo == null)
+                {
+                    return;
+                }
+
+                if (groupAInfo.Value.primitiveCount == 0 || groupBInfo.Value.primitiveCount == 0)
+                {
+                    return;
+                }
+
+                float candidateCost = groupAInfo.Value.bounds.SurfaceArea() * groupAInfo.Value.primitiveCount +
+                                      groupBInfo.Value.bounds.SurfaceArea() * groupBInfo.Value.primitiveCount;
+
+                if (candidateCost + Delta >= bestCostFound)
+                {
+                    return;
+                }
+
+                bestCostFound = candidateCost;
+
+                HashSet<int> newFullGroupA = new HashSet<int>(staticInA);
+                newFullGroupA.UnionWith(candidateA);
+
+                HashSet<int> newFullGroupB = new HashSet<int>(staticInB);
+                newFullGroupB.UnionWith(candidateB);
+
+                bestPartitionFound = new Bipartition(newFullGroupA, newFullGroupB);
+            }
             
-            // add on 2, 3, 4 remove 
+            for (int i = 0; i < total; i++)
+            {
+                int node1 = moveableList[i];
 
+                for (int j = i + 1; j < total; j++)
+                {
+                    int node2 = moveableList[j];
+                    
+                    HashSet<int> baseMoveableA = new HashSet<int>(moveableInA);
+                    baseMoveableA.Remove(node1);
+                    baseMoveableA.Remove(node2);
+
+                    HashSet<int> baseMoveableB = new HashSet<int>(moveableInB);
+                    baseMoveableB.Remove(node1);
+                    baseMoveableB.Remove(node2);
+                    
+                    HashSet<int> case1A = new HashSet<int>(baseMoveableA) { node1, node2 };
+                    EvaluateAndCompare(case1A, baseMoveableB);
+                    
+                    HashSet<int> case2B = new HashSet<int>(baseMoveableB) { node1, node2 };
+                    EvaluateAndCompare(baseMoveableA, case2B);
+                    
+                    HashSet<int> case3A = new HashSet<int>(baseMoveableA) { node1 };
+                    HashSet<int> case3B = new HashSet<int>(baseMoveableB) { node2 };
+                    EvaluateAndCompare(case3A, case3B);
+
+                    HashSet<int> case4A = new HashSet<int>(baseMoveableA) { node2 };
+                    HashSet<int> case4B = new HashSet<int>(baseMoveableB) { node1 };
+                    EvaluateAndCompare(case4A, case4B);
+                }
+            }
+            
             leftGroup = new List<BVHNodeMesh>(bestPartitionFound.groupA.Count);
             rightGroup = new List<BVHNodeMesh>(bestPartitionFound.groupB.Count);
 
@@ -301,7 +430,7 @@ namespace AmbientOcclusion.Geometry.Scripts
             {
                 return searchNode;
             }
-            
+
             if (SearchForBestPartition(searchNode, out List<BVHNodeMesh> leftGroup, out List<BVHNodeMesh> rightGroup))
             {
                 void CollectGroupIndices(List<BVHNodeMesh> group, int[] tempIndices, ref int count)
@@ -320,7 +449,7 @@ namespace AmbientOcclusion.Geometry.Scripts
                 int leftStart = searchNode.range.start;
                 CollectGroupIndices(leftGroup, tempReorderedBuffer, ref writeCount);
                 int leftEnd = leftStart + writeCount;
-                
+
                 int rightStart = leftEnd;
                 CollectGroupIndices(rightGroup, tempReorderedBuffer, ref writeCount);
                 int rightEnd = searchNode.range.end; // unchanged
@@ -332,14 +461,14 @@ namespace AmbientOcclusion.Geometry.Scripts
                     destinationIndex: searchNode.range.start,
                     length: writeCount
                 );
-                
+
                 var leftRange = new ArrayRange(leftStart, leftEnd);
                 var rightRange = new ArrayRange(rightStart, rightEnd);
 
                 DrawBound(searchNode.bounds, Color.blue, Vector3.zero);
                 DrawBound(searchNode.left.bounds, Color.red, Vector3.zero);
                 DrawBound(searchNode.right.bounds, Color.green, Vector3.zero);
-                
+
                 searchNode.left = new BVHNodeMesh(cachedTriangleArray, cachedTriangleIndices, leftRange);
                 searchNode.right = new BVHNodeMesh(cachedTriangleArray, cachedTriangleIndices, rightRange);
 
@@ -349,7 +478,7 @@ namespace AmbientOcclusion.Geometry.Scripts
 
                 Debug.Log($"FOUND BETTER PARTITIONS at depth: {depth}");
             }
-            
+
             searchNode.left = OptimizeNodeRoutine(
                 searchNode.left,
                 cachedTriangleArray,
@@ -366,7 +495,7 @@ namespace AmbientOcclusion.Geometry.Scripts
 
             return searchNode;
         }
-        
+
         private static void DrawTriangles(BVHNodeMesh node, Vector3 offset)
         {
             Stack<BVHNodeMesh> stack = new Stack<BVHNodeMesh>();

@@ -114,18 +114,21 @@ namespace AmbientOcclusion.Geometry.Scripts
             return CreateChildNodesFromPartition(bestPartition);
         }
 
-        private Bounds CalculateBoundsForGroup(List<int> triangleGroupIndices)
+        private Bounds CalculateBoundsForGroup(HashSet<int> triangleGroupIndices)
         {
             Triangle GetTriangle(int relativeIndex)
             {
                 return globalTriangles[triangleIndices[range.start + relativeIndex]];
             }
+            
+            var enumerator = triangleGroupIndices.GetEnumerator();
+            
+            enumerator.MoveNext();
+            Bounds bounds = GetTriangle(enumerator.Current).bounds;
 
-            Bounds bounds = GetTriangle(triangleGroupIndices[0]).bounds;
-
-            for (int i = 1; i < triangleGroupIndices.Count; i++)
+            while (enumerator.MoveNext())
             {
-                bounds.Encapsulate(GetTriangle(triangleGroupIndices[i]).bounds);
+                bounds.Encapsulate(GetTriangle(enumerator.Current).bounds);
             }
 
             return bounds;
