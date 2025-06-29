@@ -12,6 +12,13 @@ public class SimplePriorityQue<K, V> where K:IComparable<K>
     
     public bool IsEmpty => _size == 0;
     public bool IsNotEmpty => _size > 0;
+
+    public SimplePriorityQue()
+    {
+        int defaultMaxSize = 4;
+        _keys = new K?[defaultMaxSize + 1];
+        _values = new V?[defaultMaxSize + 1];
+    }
     
     public SimplePriorityQue(int maxSize)
     {

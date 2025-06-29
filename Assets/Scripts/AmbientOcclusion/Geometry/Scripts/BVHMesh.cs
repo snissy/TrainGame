@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using NUnit.Framework.Constraints;
 using UnityEngine;
 
 namespace AmbientOcclusion.Geometry.Scripts
@@ -108,21 +106,15 @@ namespace AmbientOcclusion.Geometry.Scripts
             return resultArray;
         }
 
-        public (BVHNodeMesh left, BVHNodeMesh right) Split()
-        {
-            Bipartition bestPartition = FindBestPartition();
-            return CreateChildNodesFromPartition(bestPartition);
-        }
-
         private Bounds CalculateBoundsForGroup(HashSet<int> triangleGroupIndices)
         {
             Triangle GetTriangle(int relativeIndex)
             {
                 return globalTriangles[triangleIndices[range.start + relativeIndex]];
             }
-            
+
             var enumerator = triangleGroupIndices.GetEnumerator();
-            
+
             enumerator.MoveNext();
             Bounds bounds = GetTriangle(enumerator.Current).bounds;
 
@@ -156,40 +148,6 @@ namespace AmbientOcclusion.Geometry.Scripts
 
             return bestPartition;
         }
-
-        private (BVHNodeMesh, BVHNodeMesh) CreateChildNodesFromPartition(Bipartition partition)
-        {
-            int[] reorderedIndices = new int[range.count];
-            int writeIndex = 0;
-
-            foreach (int relativeIndex in partition.groupA)
-            {
-                reorderedIndices[writeIndex++] = triangleIndices[range.start + relativeIndex];
-            }
-
-            int leftCount = writeIndex;
-
-            foreach (int relativeIndex in partition.groupB)
-            {
-                reorderedIndices[writeIndex++] = triangleIndices[range.start + relativeIndex];
-            }
-
-            Array.Copy(
-                sourceArray: reorderedIndices,
-                sourceIndex: 0,
-                destinationArray: triangleIndices,
-                destinationIndex: range.start,
-                length: range.count
-            );
-
-            ArrayRange leftRange = new ArrayRange(range.start, range.start + leftCount);
-            ArrayRange rightRange = new ArrayRange(range.start + leftCount, range.end);
-
-            BVHNodeMesh leftChild = new BVHNodeMesh(globalTriangles, triangleIndices, leftRange);
-            BVHNodeMesh rightChild = new BVHNodeMesh(globalTriangles, triangleIndices, rightRange);
-
-            return (leftChild, rightChild);
-        }
     }
 
     public class BVHNodeMesh
@@ -198,17 +156,21 @@ namespace AmbientOcclusion.Geometry.Scripts
 
         internal BVHLeafTriangle leaf;
         internal Bounds bounds;
+        
         internal BVHNodeMesh left;
         internal BVHNodeMesh right;
-
-        internal ArrayRange range;
-
-        internal int nPrimitives => range.count;
+        
+        internal int nPrimitives;
 
         public BVHNodeMesh(Triangle[] globalTriangles, int[] triangleIndices, ArrayRange range)
         {
-            this.range = range;
-            bounds = MakeBoundFromTriangels(globalTriangles, triangleIndices, range);
+            nPrimitives = range.count;
+            bounds = globalTriangles[triangleIndices[range.start]].bounds;
+            
+            for (int i = range.start + 1; i < range.end; i++)
+            {
+                bounds.Encapsulate(globalTriangles[triangleIndices[i]].bounds);
+            }
 
             if (range.count <= LEAF_LIMIT)
             {
@@ -225,34 +187,44 @@ namespace AmbientOcclusion.Geometry.Scripts
                 out ArrayRange rightRange);
 
             left = new BVHNodeMesh(globalTriangles, triangleIndices, leftRange);
-            right = new BVHNodeMesh(globalTriangles, triangleIndices, rightRange);
+            right = new BVHNodeMesh( globalTriangles, triangleIndices, rightRange);
         }
-
-        public bool Split(out BVHNodeMesh leftSplitNode, out BVHNodeMesh rightSplitNode)
+        public void TransformInto(BVHNodeMesh node)
         {
-            leftSplitNode = null;
-            rightSplitNode = null;
-
-            if (range.count > LEAF_LIMIT || leaf == null || range.count == 1)
-            {
-                return false;
-            }
-
-            (leftSplitNode, rightSplitNode) = leaf.Split();
-            return true;
+            leaf = node.leaf;
+            bounds = node.bounds;
+            left = node.left;
+            right = node.right;
+            nPrimitives = node.nPrimitives;
         }
-
-        private Bounds MakeBoundFromTriangels(Triangle[] globalTriangles, int[] triangleIndices, ArrayRange range)
+        
+        public void MergeWith(BVHNodeMesh newNode)
         {
-            Bounds res = globalTriangles[triangleIndices[range.start]].bounds;
-            for (int i = range.start + 1; i < range.end; i++)
-            {
-                res.Encapsulate(globalTriangles[triangleIndices[i]].bounds);
-            }
-
-            return res;
+            BVHNodeMesh oldSelf = Clone(this);
+            
+            left = oldSelf;
+            right = newNode;
+            
+            bounds = left.bounds;
+            bounds.Encapsulate(right.bounds);
+            nPrimitives  = left.nPrimitives + right.nPrimitives;
+            leaf = null;
         }
-
+        
+        private static BVHNodeMesh Clone(BVHNodeMesh other)
+        {
+            return new BVHNodeMesh(other);
+        }
+        
+        private BVHNodeMesh(BVHNodeMesh other)
+        {
+            this.leaf = other.leaf;
+            this.bounds = other.bounds;
+            this.left = other.left;
+            this.right = other.right;
+            this.nPrimitives = other.nPrimitives;
+        }
+        
         public bool IntersectRay(Ray testRay, ref float minLambda, ref int nIntersections)
         {
             if (leaf != null)
@@ -355,6 +327,20 @@ namespace AmbientOcclusion.Geometry.Scripts
 
             return flatNodes.ToArray();
         }
+
+        public void UpdateBounds()
+        {
+            if (leaf != null)
+            {
+                return;
+            }
+            
+            left.UpdateBounds();
+            right.UpdateBounds();
+            
+            this.bounds = left.bounds;
+            bounds.Encapsulate(right.bounds);
+        }
     }
 
     public class BVHMesh
@@ -371,16 +357,12 @@ namespace AmbientOcclusion.Geometry.Scripts
             renderer = meshRenderer;
             cachedTriangleArray = meshRenderer.TriangleArray();
             cachedTriangleIndices = Enumerable.Range(0, cachedTriangleArray.Length).ToArray();
-            root = new BVHNodeMesh(cachedTriangleArray, cachedTriangleIndices,
-                new ArrayRange(0, cachedTriangleArray.Length));
+            root = new BVHNodeMesh(cachedTriangleArray, cachedTriangleIndices, new ArrayRange(0, cachedTriangleArray.Length));
         }
 
         public void TryToOptimize()
         {
-            root = root.OptimizeNode(
-                cachedTriangleArray,
-                cachedTriangleIndices
-            );
+            root = root.OptimizeNode();
         }
 
         public float SAHCostForTree()

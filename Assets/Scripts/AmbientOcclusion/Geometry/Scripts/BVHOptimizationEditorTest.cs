@@ -214,46 +214,4 @@ public class BVHOptimizationEditorTest : MonoBehaviour
     {
         Debug.DrawLine(offset + p0, offset + p1, c, 30);
     }
-
-
-    [ContextMenu("Test Max prioque")]
-
-    public void TestMaxPrioque()
-    {
-
-        int testCount = 1000;
-        
-        List<int> numbers = new List<int>();
-
-        // Fill the list with numbers from 0 to 9999
-        for (int i = 0; i < testCount; i++)
-        {
-            numbers.Add(i);
-        }
-
-        Shuffle(numbers);
-
-        SimplePriorityQue<int, int> priorityQue = new SimplePriorityQue<int, int>(maxSize: testCount * 2);
-
-        foreach (int number in numbers)
-        {
-            priorityQue.Insert(number, number);
-        }
-
-        // Log first 10 items to verify shuffle
-        for (int i = 0; i < 100; i++)
-        {
-            Debug.Log($"Shuffled, {numbers[i]}], not shuffled{priorityQue.DeleteMax()}");
-        }
-    }
-    
-    // Fisher-Yates shuffle algorithm
-    void Shuffle(List<int> list)
-    {
-        for (int i = list.Count - 1; i > 0; i--)
-        {
-            int j = Random.Range(0, i + 1); // UnityEngine.Random.Range is inclusive on both ends for ints
-            (list[i], list[j]) = (list[j], list[i]);
-        }
-    }
 }

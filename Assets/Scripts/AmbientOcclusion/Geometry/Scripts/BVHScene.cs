@@ -346,7 +346,7 @@ namespace AmbientOcclusion.Geometry.Scripts
                     Bounds visualBounds = visual.bounds;
                     Vector3 visualCentroid = visualBounds.center;
                     float t = Vector3.Dot(axis, visualCentroid) - axisStart;
-                    int bIndex = Mathf.FloorToInt(t / binSize);
+                    int bIndex = Math.Clamp( Mathf.FloorToInt(t / binSize), 0, nBins-1) ;
                     bins[bIndex].AddPrimitive(visualBounds);
                 }
 
