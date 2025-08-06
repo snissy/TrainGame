@@ -134,7 +134,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 0
+  m_IsActive: 1
 --- !u!4 &9642219
 Transform:
   m_ObjectHideFlags: 0
@@ -295,16 +295,15 @@ PrefabInstance:
       propertyPath: m_Name
       value: sponza
       objectReference: {fileID: 0}
+    - target: {fileID: 919132149155446097, guid: 74a2b420249a24043b5a3cfad63fc157, type: 3}
+      propertyPath: m_IsActive
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 74a2b420249a24043b5a3cfad63fc157, type: 3}
---- !u!23 &483906207 stripped
-MeshRenderer:
-  m_CorrespondingSourceObject: {fileID: -7511558181221131132, guid: 74a2b420249a24043b5a3cfad63fc157, type: 3}
-  m_PrefabInstance: {fileID: 483906206}
-  m_PrefabAsset: {fileID: 0}
 --- !u!1 &805752412
 GameObject:
   m_ObjectHideFlags: 0
@@ -329,8 +328,8 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 805752412}
   serializedVersion: 2
-  m_LocalRotation: {x: 0.081408225, y: 0.69812566, z: 0.0801496, w: -0.7068022}
-  m_LocalPosition: {x: 9.670943, y: 1.1795516, z: -2.7995358}
+  m_LocalRotation: {x: -0.042057917, y: 0.9569694, z: -0.22387505, w: -0.17977959}
+  m_LocalPosition: {x: 1.0576472, y: 2.2963686, z: 1.9229393}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
@@ -350,11 +349,11 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 07aac024ef1ff6c4b919f2739e156a13, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.05
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 07aac024ef1ff6c4b919f2739e156a13, type: 3}
       propertyPath: m_LocalPosition.z
-      value: -0.1138
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 07aac024ef1ff6c4b919f2739e156a13, type: 3}
       propertyPath: m_LocalRotation.w
@@ -396,6 +395,11 @@ PrefabInstance:
 --- !u!4 &1405461261 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 07aac024ef1ff6c4b919f2739e156a13, type: 3}
+  m_PrefabInstance: {fileID: 1405461260}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &1405461262 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -7511558181221131132, guid: 07aac024ef1ff6c4b919f2739e156a13, type: 3}
   m_PrefabInstance: {fileID: 1405461260}
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &1668254431
@@ -536,16 +540,13 @@ MonoBehaviour:
   m_GameObject: {fileID: 1681392270}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 85e173cdf6d818b4bbcb6a24b5299e9b, type: 3}
+  m_Script: {fileID: 11500000, guid: e895f74f1bde14999a46aa525566ee4a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   rayTransform: {fileID: 805752413}
-  nPixels: 1024
+  nPixels: 128
   focalLength: 2
-  meshToAnalyze: {fileID: 483906207}
-  baseColor: {r: 0.39161587, g: 1, b: 0, a: 1}
-  updateColor: {r: 0.9292453, g: 0, b: 0, a: 1}
-  updateOffsetDraw: {x: 0, y: 1, z: 0}
+  meshToAnalyze: {fileID: 1405461262}
   drawDuration: 25
 --- !u!1 &2131262359
 GameObject:

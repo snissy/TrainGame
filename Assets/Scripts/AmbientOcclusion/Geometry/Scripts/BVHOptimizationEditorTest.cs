@@ -4,19 +4,12 @@ using System.Linq;
 using AmbientOcclusion.Geometry.Scripts;
 using AmbientOcclusion.Geometry.Scripts.OcclusionTool;
 using UnityEngine;
-using Random = UnityEngine.Random;
-
 public class BVHOptimizationEditorTest : MonoBehaviour
 {
     [SerializeField] private Transform rayTransform;
     [SerializeField] private int nPixels;
     [SerializeField] private float focalLength;
     [SerializeField] private MeshRenderer meshToAnalyze;
-    [SerializeField] private Color baseColor = Color.white;
-    [SerializeField] private Color updateColor = Color.white;
-
-    [SerializeField] private Vector3 updateOffsetDraw = Vector3.up;
-
     [SerializeField] private float drawDuration = 25f;
 
     private BVHMesh bvhMesh;
